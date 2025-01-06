@@ -1,5 +1,5 @@
 # list of functions for Mie scattering theory
-
+#%%
 import numpy as np
 from scipy.special import spherical_jn, spherical_yn
 from scipy.interpolate import interp1d
@@ -40,12 +40,42 @@ def mie_C_geo(radius):
     return C_geo
 
 # extract the real and imaginary parts of the refractive index at a given wavelength
-def get_RI(original_RI_real, original_RI_imag, wavelength, kind = 'cubic'):
+def get_RI(original_RI_real, original_RI_imag, wavelength, kind, wavelengthOfInterest):
     # interpolate the real and imaginary parts of the refractive index
-    RI_real_interp = interp1d(wavelength, original_RI_real, kind = kind)
-    RI_imag_interp = interp1d(wavelength, original_RI_imag, kind = kind)
+    RI_real_interp = interp1d(wavelength, original_RI_real, kind = kind, fill_value = 'extrapolate')
+    RI_imag_interp = interp1d(wavelength, original_RI_imag, kind = kind, fill_value = 'extrapolate')
 
-    return RI_real_interp, RI_imag_interp
+    n = RI_real_interp(wavelengthOfInterest) # real part of the refractive index at the wavelength of interest
+    k = RI_imag_interp(wavelengthOfInterest) # imaginary part of the refractive index at the wavelength of interest
+    return n, k
 
+
+#%%
+
+particles_radii = np.arange(10,10000,step = 10)
+
+wavelenghts = np.arange(200,1000,step = 0.25)
+
+import pandas as pd
+from tqdm import tqdm
+# read the refractive index of water with pandas
+ri_water = pd.read_csv('ri_water.csv', delimiter = ',',comment = '%')
+
+wavelength_ri = ri_water.iloc[:,0].values
+#make it in nm from cm-1
+wavelength_ri = 1e7/wavelength_ri
+
+n = ri_water.iloc[:,1].values
+k = ri_water.iloc[:,2].values 
+
+
+#%%
+n_oi, k_oi = get_RI(n, k, wavelength_ri,'cubic', wavelenghts)
+m = n_oi + 1j*k_oi
+
+C_ext = np.zeros((len(wavelenghts), len(particles_radii)))
+for i in tqdm(range(len(wavelenghts)), desc="Wavelengths"):
+    for j in range(len(particles_radii)):
+        C_ext[i,j] = mie_C_ext(particles_radii[j], wavelenghts[i], m[i])
 
 

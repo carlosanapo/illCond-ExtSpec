@@ -597,3 +597,8 @@ f_imag = interp1d(wavelength, imaginary_part, kind='cubic')
 real_part_interpolated = f_real(walength_list)
 imaginary_part_interpolated = f_imag(walength_list)
 
+C_ext = np.zeros((len(walength_list), len(radii)))
+for i in range(len(walength_list)):
+    for j in range(len(radii)):
+        C_ext[i,j] = mie_C_ext(radii[j], walength_list[i], m)
+        
